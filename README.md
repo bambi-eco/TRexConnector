@@ -44,6 +44,30 @@ therefore undistorts each detection's corners with the camera calibration (`mtx`
 reproducing exactly what BAMBI did when it generated the frames and poses. Disable this with
 `--no-undistort` only if your detections are already in the pose-frame pixel space.
 
+### Aquatic / marine surveys — flat-surface projection
+
+When the DEM represents the **seafloor** (e.g. a bathymetric model) and the animals are near
+the **water surface**, projecting onto the DEM will place detections far from their true
+positions — systematically displaced outward from the camera nadir by an amount proportional
+to `seafloor_depth × tan(off-nadir_angle)` (tens of metres for typical drone altitudes over
+shallow reefs).
+
+Use `--flat-surface-msl <elevation>` to project onto a flat horizontal plane at the given MSL
+elevation instead of the DEM mesh. For sea-surface surveys set it to `0.0`:
+
+```bash
+python trex_to_bambi.py \
+    --npz-dir   /path/to/tracking \
+    --dem-json  /path/to/DEM.json \
+    --poses     /path/to/poses_w.json \
+    --calib     /path/to/W_calib.json \
+    --out-dir   /path/to/output \
+    --flat-surface-msl 0.0
+```
+
+The `--dem-glb` argument is not required (and the mesh file is not loaded) when
+`--flat-surface-msl` is set, which also makes the script run significantly faster.
+
 ## Installation
 
 ```bash
@@ -80,6 +104,7 @@ python trex_to_bambi.py \
 | `--calib` | Camera calibration JSON (`mtx`/`dist`) used to undistort detections. |
 | `--correction` | Optional flight-specific correction JSON (`translation`/`rotation`). |
 | `--out-dir` | Output folder; `detections_w/`, `georeferenced_w/`, `tracks_w/` are created. |
+| `--flat-surface-msl Z` | Project onto a flat plane at `Z` metres MSL instead of the DEM mesh. Use `0.0` for sea-surface surveys where the DEM is the seafloor. `--dem-glb` is not required when this is set. |
 | `--no-undistort` | Skip undistortion (detections already in pose-frame space). |
 | `--track-id-offset` | Added to every track id (use `1` for 1-based MOT ids). |
 | `--input-resolution W H` | Override the projection input resolution. |
