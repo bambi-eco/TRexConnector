@@ -356,7 +356,8 @@ def parse_args(argv=None):
     p.add_argument("--npz-dir", default=_default(base, "tracking"),
                    help="Folder containing the TRex *.npz tracklets")
     p.add_argument("--dem-glb", default=_default(qgis, "DJI_202403071703_002_athtongue_DEM.glb"),
-                   help="Digital elevation model mesh (GLTF/GLB)")
+                   help="Digital elevation model mesh (GLTF/GLB). "
+                        "Not required when --flat-surface-msl is set.")
     p.add_argument("--dem-json", default=_default(qgis, "DJI_202403071703_002_athtongue_DEM.json"),
                    help="DEM metadata json (provides the origin offsets / CRS)")
     p.add_argument("--poses", default=_default(qgis, "poses_w.json"),
@@ -382,6 +383,10 @@ def parse_args(argv=None):
     p.add_argument("--input-resolution", type=int, nargs=2, metavar=("W", "H"), default=None,
                    help="Override the projection input resolution (defaults to the "
                         "undistorted square size, or the mask size)")
+    p.add_argument("--flat-surface-msl", type=float, default=None, metavar="Z_MSL",
+                   help="Project detections onto a flat horizontal plane at this MSL elevation "
+                        "instead of the DEM mesh. Use 0.0 for sea-surface surveys where the DEM "
+                        "is the seafloor and animals are near the water surface.")
     return p.parse_args(argv)
 
 
@@ -408,8 +413,23 @@ def main(argv=None) -> None:
     with open(args.poses, "r", encoding="utf-8") as f:
         poses = json.load(f)
 
-    mesh_data, _texture = read_gltf(args.dem_glb)
-    tri_mesh = Trimesh(vertices=mesh_data.vertices, faces=mesh_data.indices)
+    if args.flat_surface_msl is not None:
+        z_off = float(offsets[2])
+        z_local = args.flat_surface_msl - z_off
+        half = 1_000_000.0
+        verts = np.array([
+            [-half, -half, z_local],
+            [ half, -half, z_local],
+            [ half,  half, z_local],
+            [-half,  half, z_local],
+        ], dtype=np.float32)
+        faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int32)
+        tri_mesh = Trimesh(vertices=verts, faces=faces)
+        print(f"   Flat-surface projection: {args.flat_surface_msl:.1f} m MSL "
+              f"(= {z_local:.2f} m local). DEM mesh skipped.")
+    else:
+        mesh_data, _texture = read_gltf(args.dem_glb)
+        tri_mesh = Trimesh(vertices=mesh_data.vertices, faces=mesh_data.indices)
 
     cor_rotation_eulers, cor_translation = load_correction(args.correction)
 
