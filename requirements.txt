@@ -12,3 +12,10 @@ opencv-python>=4.7.0.72
 trimesh==3.21.7
 pyrr==0.10.3
 pygltflib==1.15.2
+
+# Additional dependencies for visualize_trex_video_and_map.py: pyproj for the
+# UTM -> WGS84 transform and requests for fetching satellite map tiles. (The
+# visualizer reuses bambi_detection's PipeFFMPEGWriter when available, but falls
+# back to cv2.VideoWriter, so no extra video dependency is required.)
+pyproj>=3.4.0
+requests>=2.28.0

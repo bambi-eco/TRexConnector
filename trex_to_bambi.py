@@ -451,7 +451,6 @@ def main(argv=None) -> None:
         tri_mesh = Trimesh(vertices=mesh_data.vertices, faces=mesh_data.indices)
 
     cor_rotation_eulers, cor_translation = load_correction(args.correction)
-
     undistorter = None
     if not args.no_undistort:
         if raw_size == (0, 0):

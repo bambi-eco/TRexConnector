@@ -117,3 +117,48 @@ local-to-origin metres, with the global anchor stored in `DEM.json`'s `origin`. 
 mesh and the camera poses live in incompatible coordinate ranges, no detection can be
 projected and the geo-referenced outputs will be empty. (The `detections.txt` step is
 independent of the DEM and always works.)
+
+## Visualizing the results
+
+`visualize_trex_video_and_map.py` is a companion tool for checking a run end to end. It
+renders a side-by-side video:
+
+- **Left — pixel space:** the original video with per-track bounding boxes (the axis-aligned
+  box spanning each tracklet's `poseX*/poseY*` points), ID labels, confidence and the pose
+  key-points.
+- **Right — geo space:** a 2D map of the geo-referenced `tracks.csv` (per-track boxes,
+  trajectory trails and axis ticks) over an optional satellite background.
+
+The two panels stay in sync because the TRex tracklets and `tracks.csv` share the same frame
+indices and track ids.
+
+```bash
+python visualize_trex_video_and_map.py \
+    --video        /path/to/20240307_063012765_DJI_0463.MP4 \
+    --tracking-dir /path/to/tracking \
+    --tracks-csv   /path/to/output/tracks_w/tracks.csv \
+    --epsg 32643
+```
+
+By default it writes `<video_dir>/<stem>_trex_vis.mp4` and shows a live preview window (press
+`q`/`Esc` to quit). The video is encoded with BAMBI's `PipeFFMPEGWriter` (libx264) when
+available and falls back to `cv2.VideoWriter` (mp4v) otherwise, so it needs only numpy,
+opencv, and — for the satellite map — `pyproj` + `requests`.
+
+### Key options
+
+| Option | Description |
+| --- | --- |
+| `--video` | Source video file. |
+| `--tracking-dir` | Folder containing the TRex `*_id<N>.npz` tracklets. |
+| `--tracks-csv` | Geo-referenced tracks CSV (the `tracks_w/tracks.csv` produced above). |
+| `--epsg` | EPSG code of the `tracks.csv` coordinates, used to place the satellite map (e.g. `32643` for UTM 43N). |
+| `--output` | Output video path (defaults to `<video_dir>/<stem>_trex_vis.mp4`). |
+| `--track-ids` | Optional subset of track ids to display. |
+| `--no-map` | Disable the satellite background (no network needed). |
+| `--no-keypoints` | Draw only the bounding boxes, not the pose key-points. |
+| `--no-live` / `--no-video` | Skip the preview window / skip writing the output video. |
+| `--display-width` / `--map-size` | Video panel width and (square) map canvas size in pixels. |
+| `--max-frames` | Stop after N frames (useful for a quick check). |
+| `--map-cache` | Directory to cache downloaded map tiles. |
+| `--bambi-path` | Path to a local `bambi_detection` checkout (only needed for the FFMPEG writer). |
