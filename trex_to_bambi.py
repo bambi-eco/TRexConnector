@@ -248,7 +248,8 @@ class Undistorter:
 # Camera for a frame (mirrors bambi / georeference_deepsort_mot)
 # --------------------------------------------------------------------------- #
 def get_camera_for_frame(poses: dict, frame_idx: int,
-                         cor_rotation_eulers: Vector3, cor_translation: Vector3) -> Camera:
+                         cor_rotation_eulers: Vector3, cor_translation: Vector3,
+                         aspect_ratio: float = 1.0) -> Camera:
     image_data = poses["images"][frame_idx]
     fovy = image_data["fovy"][0]
     position = Vector3(image_data["location"]) + cor_translation
@@ -256,7 +257,7 @@ def get_camera_for_frame(poses: dict, frame_idx: int,
         Vector3([np.deg2rad(v % 360.0) for v in image_data["rotation"]]) - cor_rotation_eulers
     ) * -1
     rotation = Quaternion.from_eulers(rotation_eulers)
-    return Camera(fovy=fovy, aspect_ratio=1.0, position=position, rotation=rotation)
+    return Camera(fovy=fovy, aspect_ratio=aspect_ratio, position=position, rotation=rotation)
 
 
 def load_correction(path: Optional[str]) -> Tuple[Vector3, Vector3]:
@@ -319,7 +320,8 @@ def georeference(
 
             camera = camera_cache.get(d.frame)
             if camera is None:
-                camera = get_camera_for_frame(poses, d.frame, cor_rotation_eulers, cor_translation)
+                camera = get_camera_for_frame(poses, d.frame, cor_rotation_eulers, cor_translation,
+                                             aspect_ratio=input_resolution.width / input_resolution.height)
                 camera_cache[d.frame] = camera
 
             world = label_to_world_coordinates(poly, input_resolution, tri_mesh, camera)
